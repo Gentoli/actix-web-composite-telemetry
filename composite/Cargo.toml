@@ -1,0 +1,18 @@
+[package]
+name = "janus-monitoring"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web-opentelemetry = "0.11.0-beta.4"
+awc = "3.0.0-beta.7"
+opentelemetry = "0.15.0"
+tracing = "0.1.26"
+tracing-actix-web = { git = "https://github.com/Gentoli/tracing-actix-web.git", features = ["opentelemetry_0_15"] }
+tracing-log = "0.1.2"
+tracing-opentelemetry = "0.14.0"
+tracing-attributes = "0.1.15"
+opentelemetry-jaeger = "0.14.0"
+tracing-subscriber = "0.2.19"
