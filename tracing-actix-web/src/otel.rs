@@ -41,6 +41,7 @@ impl<'a> Extractor for RequestHeaderCarrier<'a> {
 }
 
 pub(crate) fn set_otel_parent(req: &ServiceRequest, span: &tracing::Span) {
+    use actix_web::HttpMessage as _;
     use opentelemetry::trace::TraceContextExt as _;
     use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
@@ -50,6 +51,10 @@ pub(crate) fn set_otel_parent(req: &ServiceRequest, span: &tracing::Span) {
     span.set_parent(parent_context);
     // If we have a remote parent span, this will be the parent's trace identifier.
     // If not, it will be the newly generated trace identifier with this request as root span.
-    let trace_id = span.context().span().span_context().trace_id().to_hex();
+    let context = span.context();
+    let trace_id = context.span().span_context().trace_id().to_hex();
     span.record("trace_id", &tracing::field::display(trace_id));
+
+    // Attach to otel thread context for otel consumers
+    req.extensions_mut().insert(context.attach());
 }
