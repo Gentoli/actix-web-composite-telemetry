@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use tracing::Subscriber;
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::layer::Context;
+use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer;
 
 pub struct EventLayer<S: Subscriber, L: Layer<S>> {
@@ -24,7 +25,10 @@ impl<S: Subscriber, L: Layer<S>> EventLayer<S, L> {
     }
 }
 
-impl<S: Subscriber, L: Layer<S>> Layer<S> for EventLayer<S, L> {
+impl<S: Subscriber, L: Layer<S>> Layer<S> for EventLayer<S, L>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
     fn register_callsite(&self, metadata: &'static Metadata<'static>) -> Interest {
         self.inner.register_callsite(metadata)
     }
@@ -49,11 +53,11 @@ impl<S: Subscriber, L: Layer<S>> Layer<S> for EventLayer<S, L> {
         self.inner.on_follows_from(_span, _follows, _ctx)
     }
 
-    fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
+    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
         let normalized_meta = event.normalized_metadata();
         let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
         if meta.level() <= &self.level {
-            self.inner.on_event(event, _ctx)
+            self.inner.on_event(event, ctx)
         }
     }
 
@@ -65,8 +69,14 @@ impl<S: Subscriber, L: Layer<S>> Layer<S> for EventLayer<S, L> {
         self.inner.on_exit(_id, _ctx)
     }
 
-    fn on_close(&self, _id: Id, _ctx: Context<'_, S>) {
-        self.inner.on_close(_id, _ctx)
+    fn on_close(&self, id: Id, ctx: Context<'_, S>) {
+        let is_root = {
+            let span = ctx.span(&id).expect("layer_filter:on_close");
+            span.parent_id().is_none()
+        };
+        if is_root {
+            self.inner.on_close(id, ctx)
+        }
     }
 
     fn on_id_change(&self, _old: &Id, _new: &Id, _ctx: Context<'_, S>) {
