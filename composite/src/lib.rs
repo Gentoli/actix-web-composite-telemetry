@@ -41,13 +41,15 @@ pub async fn configure() {
 
     #[cfg(feature = "stackdriver")]
     let tracer = {
-        use opentelemetry::trace::TracerProvider;
         use opentelemetry::sdk::trace;
-        use opentelemetry_stackdriver::{GcpAuthorizer};
-        use std::time::Duration;
+        use opentelemetry::trace::TracerProvider;
         use opentelemetry_stackdriver::tokio_adapter::TokioSpawner;
+        use opentelemetry_stackdriver::GcpAuthorizer;
+        use std::time::Duration;
 
-        let authorizer = GcpAuthorizer::new().await.expect("google service account creds");
+        let authorizer = GcpAuthorizer::new()
+            .await
+            .expect("google service account creds");
         let handle = tokio::runtime::Handle::current();
         let spawner = TokioSpawner::new(handle);
         let exporter = opentelemetry_stackdriver::StackDriverExporter::connect(
@@ -55,8 +57,12 @@ pub async fn configure() {
             &spawner,
             Some(Duration::from_secs(10)),
             10,
-        ).await.expect("failed to start stackdriver exporter");
-        let provider = trace::TracerProvider::builder().with_simple_exporter(exporter).build();
+        )
+        .await
+        .expect("failed to start stackdriver exporter");
+        let provider = trace::TracerProvider::builder()
+            .with_simple_exporter(exporter)
+            .build();
         let tracer = provider.get_tracer("janus", option_env!("SHORT_SHA"));
 
         let _ = global::set_tracer_provider(provider);
