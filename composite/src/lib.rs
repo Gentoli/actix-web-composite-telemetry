@@ -20,7 +20,7 @@ pub use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use tracing_subscriber::fmt::format::FmtSpan;
 
-pub fn configure() {
+pub async fn configure() {
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     let env_filter = EnvFilter::try_from_default_env()
@@ -38,6 +38,31 @@ pub fn configure() {
         .with_service_name("janus-server")
         .install_simple()
         .expect("jaeger");
+
+    #[cfg(feature = "stackdriver")]
+    let tracer = {
+        use opentelemetry::trace::TracerProvider;
+        use opentelemetry::sdk::trace;
+        use opentelemetry_stackdriver::{GcpAuthorizer};
+        use std::time::Duration;
+        use opentelemetry_stackdriver::tokio_adapter::TokioSpawner;
+
+        let authorizer = GcpAuthorizer::new().await.expect("google service account creds");
+        let handle = tokio::runtime::Handle::current();
+        let spawner = TokioSpawner::new(handle);
+        let exporter = opentelemetry_stackdriver::StackDriverExporter::connect(
+            authorizer,
+            &spawner,
+            Some(Duration::from_secs(10)),
+            10,
+        ).await.expect("failed to start stackdriver exporter");
+        let provider = trace::TracerProvider::builder().with_simple_exporter(exporter).build();
+        let tracer = provider.get_tracer("janus", option_env!("SHORT_SHA"));
+
+        let _ = global::set_tracer_provider(provider);
+
+        tracer
+    };
 
     #[cfg(feature = "std_tracer")]
     let tracer = stdout::new_pipeline()
