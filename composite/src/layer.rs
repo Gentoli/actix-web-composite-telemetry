@@ -37,8 +37,8 @@ where
         self.inner.enabled(metadata, ctx)
     }
 
-    fn new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
-        self.inner.new_span(attrs, id, ctx)
+    fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, ctx: Context<'_, S>) {
+        self.inner.on_new_span(attrs, id, ctx)
     }
 
     fn max_level_hint(&self) -> Option<LevelFilter> {
@@ -72,7 +72,7 @@ where
     fn on_close(&self, id: Id, ctx: Context<'_, S>) {
         let is_root = {
             let span = ctx.span(&id).expect("layer_filter:on_close");
-            span.parent_id().is_none()
+            span.parent().is_none()
         };
         if is_root {
             self.inner.on_close(id, ctx)
