@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "composite",
+
+    # deps
+    "actix-web-opentelemetry",
+    "tracing-actix-web",
+]
