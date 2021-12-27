@@ -1,8 +1,8 @@
 use crate::util::http_method_str;
-use actix_http::{encoding::Decoder, Error, Payload, PayloadStream};
+use actix_http::{encoding::Decoder, Error, Payload, BoxedPayloadStream};
 use actix_web::{
-    body::AnyBody,
-    http::{HeaderName, HeaderValue},
+    body::MessageBody,
+    http::header::{HeaderName, HeaderValue},
     web::Bytes,
 };
 use awc::{error::SendRequestError, ClientRequest, ClientResponse};
@@ -83,7 +83,7 @@ impl ClientExt for ClientRequest {
     }
 }
 
-type AwcResult = Result<ClientResponse<Decoder<Payload<PayloadStream>>>, SendRequestError>;
+type AwcResult = Result<ClientResponse<Decoder<Payload<BoxedPayloadStream>>>, SendRequestError>;
 
 impl InstrumentedClientRequest {
     /// Generate an awc [`ClientResponse`] from a traced request with an empty body.
@@ -98,7 +98,7 @@ impl InstrumentedClientRequest {
     /// [`ClientResponse`]: actix_web::client::ClientResponse
     pub async fn send_body<B>(self, body: B) -> AwcResult
     where
-        B: Into<AnyBody>,
+        B: MessageBody + 'static,
     {
         self.trace_request(|request| request.send_body(body)).await
     }

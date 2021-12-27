@@ -260,11 +260,11 @@ where
 }
 
 struct RequestHeaderCarrier<'a> {
-    headers: &'a actix_web::http::HeaderMap,
+    headers: &'a actix_web::http::header::HeaderMap,
 }
 
 impl<'a> RequestHeaderCarrier<'a> {
-    fn new(headers: &'a actix_web::http::HeaderMap) -> Self {
+    fn new(headers: &'a actix_web::http::header::HeaderMap) -> Self {
         RequestHeaderCarrier { headers }
     }
 }
