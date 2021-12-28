@@ -20,7 +20,7 @@ pub use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use tracing_subscriber::fmt::format::FmtSpan;
 
-pub async fn configure() {
+pub async fn configure(service_name: &str) {
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     let env_filter = EnvFilter::try_from_default_env()
@@ -35,7 +35,7 @@ pub async fn configure() {
 
     #[cfg(feature = "jaeger")]
     let tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name("janus-server")
+        .with_service_name(service_name)
         .install_simple()
         .expect("jaeger");
 
@@ -63,7 +63,7 @@ pub async fn configure() {
         let provider = trace::TracerProvider::builder()
             .with_simple_exporter(exporter)
             .build();
-        let tracer = provider.get_tracer("janus", option_env!("SHORT_SHA"));
+        let tracer = provider.tracer(service_name, option_env!("SHORT_SHA"));
 
         let _ = global::set_tracer_provider(provider);
 
@@ -71,9 +71,15 @@ pub async fn configure() {
     };
 
     #[cfg(feature = "std_tracer")]
-    let tracer = stdout::new_pipeline()
-        .with_trace_config(Config::default().with_sampler(Sampler::AlwaysOn))
-        .install_simple();
+    let tracer = {
+        use opentelemetry::sdk::export::trace::stdout;
+        use opentelemetry::sdk::trace::{Config, Sampler};
+        use opentelemetry::trace::TracerProvider;
+
+        stdout::new_pipeline()
+            .with_trace_config(Config::default().with_sampler(Sampler::AlwaysOn))
+            .install_simple()
+    };
 
     #[cfg(feature = "trace_output")]
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
