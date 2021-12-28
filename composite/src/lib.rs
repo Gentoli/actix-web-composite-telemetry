@@ -20,7 +20,7 @@ pub use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use tracing_subscriber::fmt::format::FmtSpan;
 
-pub async fn configure(service_name: &str) {
+pub async fn configure(service_name: &'static str) {
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     let env_filter = EnvFilter::try_from_default_env()
