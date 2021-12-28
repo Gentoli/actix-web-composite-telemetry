@@ -26,6 +26,6 @@ tokio = { version = "*", optional = true }
 [features]
 jaeger = ["trace_output", "opentelemetry-jaeger"]
 stackdriver = ["trace_output", "opentelemetry-stackdriver", "tokio"]
-json_log = []
+json_log = ["tracing-subscriber/json"]
 std_tracer = ["trace_output"]
 trace_output = []
