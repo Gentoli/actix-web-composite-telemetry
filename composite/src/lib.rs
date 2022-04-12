@@ -43,27 +43,26 @@ pub async fn configure(service_name: &'static str) {
     let tracer = {
         use opentelemetry::sdk::trace;
         use opentelemetry::trace::TracerProvider;
-        use opentelemetry_stackdriver::tokio_adapter::TokioSpawner;
         use opentelemetry_stackdriver::GcpAuthorizer;
-        use std::time::Duration;
 
         let authorizer = GcpAuthorizer::new()
             .await
             .expect("google service account creds");
-        let handle = tokio::runtime::Handle::current();
-        let spawner = TokioSpawner::new(handle);
-        let exporter = opentelemetry_stackdriver::StackDriverExporter::connect(
-            authorizer,
-            &spawner,
-            Some(Duration::from_secs(10)),
-            10,
-        )
-        .await
-        .expect("failed to start stackdriver exporter");
+        let (exporter, fut) = opentelemetry_stackdriver::StackDriverExporter::builder()
+            .build(authorizer)
+            .await
+            .expect("failed to start stackdriver exporter");
+
+        let _ = tokio::spawn(fut);
+
         let provider = trace::TracerProvider::builder()
             .with_simple_exporter(exporter)
             .build();
-        let tracer = provider.tracer(service_name, option_env!("SHORT_SHA"));
+        let tracer = provider.versioned_tracer(
+            service_name,
+            option_env!("SHORT_SHA"),
+            Some("https://opentelemetry.io/schema/1.0.0")
+        );
 
         let _ = global::set_tracer_provider(provider);
 
@@ -74,7 +73,6 @@ pub async fn configure(service_name: &'static str) {
     let tracer = {
         use opentelemetry::sdk::export::trace::stdout;
         use opentelemetry::sdk::trace::{Config, Sampler};
-        use opentelemetry::trace::TracerProvider;
 
         stdout::new_pipeline()
             .with_trace_config(Config::default().with_sampler(Sampler::AlwaysOn))

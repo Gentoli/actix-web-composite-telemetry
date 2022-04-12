@@ -9,17 +9,17 @@ authors = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web-opentelemetry = { path = "../actix-web-opentelemetry" }
-actix-web = "4.0.0-beta.16"
-awc = "3.0.0-beta.15"
-opentelemetry = "0.16.0"
-tracing = "0.1.26"
-tracing-actix-web = { path = "../tracing-actix-web", features = ["opentelemetry_0_16"] }
-tracing-log = "0.1.2"
-tracing-opentelemetry = "0.16"
-tracing-attributes = "0.1.15"
-opentelemetry-jaeger = { version = "0.14.0", optional = true }
-opentelemetry-stackdriver = { version = "0.12", optional = true, features = ["gcp_auth", "tokio_adapter"] }
+actix-web-opentelemetry = { path = "../actix-web-opentelemetry", features = ["awc"] }
+actix-web = "4"
+awc = "3"
+opentelemetry = "0.17"
+tracing = "0.1"
+tracing-actix-web = { path = "../tracing-actix-web", features = ["opentelemetry_0_17"] }
+tracing-log = "0.1"
+tracing-opentelemetry = "0.17"
+tracing-attributes = "0.1"
+opentelemetry-jaeger = { version = "0.16", optional = true }
+opentelemetry-stackdriver = { version = "0.14", optional = true, features = ["gcp_auth"] }
 tracing-subscriber = { version = "0.3", features = ['env-filter'] }
 tokio = { version = "*", optional = true }
 
