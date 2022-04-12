@@ -1,5 +1,30 @@
 # Changelog
 
+## [v0.12.0](https://github.com/OutThereLabs/actix-web-opentelemetry/compare/v0.11.0-beta.8..v0.12.0)
+
+### Changed
+
+* Update to 2021 edition (#99)
+* Update to actix-web v4 (#97)
+
+## [v0.11.0-beta.8](https://github.com/OutThereLabs/actix-web-opentelemetry/compare/v0.11.0-beta.7..v0.11.0-beta.8)
+
+### Changed
+
+- Update to opentelemetry v0.17.x (#94)
+- Fix metric names to be aligned with prometheus standards (#95)
+
+## [v0.11.0-beta.7](https://github.com/OutThereLabs/actix-web-opentelemetry/compare/v0.11.0-beta.6..v0.11.0-beta.7)
+
+### Added
+
+- Add `with_attributes` method to client extension (#91)
+
+### Changed
+
+- Add http status code handling for client (#88)
+- Update to actix-http beta.17, actix-web beta.16, awc beta.15 (#89)
+- Make `awc` client tracing an optional feature (#92)
 
 ## [v0.11.0-beta.6](https://github.com/OutThereLabs/actix-web-opentelemetry/compare/v0.11.0-beta.5..v0.11.0-beta.6)
 

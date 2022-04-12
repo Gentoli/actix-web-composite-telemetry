@@ -1,25 +1,23 @@
 use super::route_formatter::RouteFormatter;
 use crate::util::{http_flavor, http_method_str, http_scheme};
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{http::header, Error};
-use futures::{
-    future::{ok, FutureExt, Ready},
-    Future,
+use actix_web::{
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    http::header::{self, HeaderMap},
+    Error,
 };
+use futures_util::future::{ok, FutureExt as _, LocalBoxFuture, Ready};
 use opentelemetry::{
     global,
     propagation::Extractor,
-    trace::{FutureExt as OtelFutureExt, SpanKind, StatusCode, TraceContextExt, Tracer},
-    Context,
+    trace::{
+        FutureExt as OtelFutureExt, SpanKind, StatusCode, TraceContextExt, Tracer, TracerProvider,
+    },
 };
 use opentelemetry_semantic_conventions::trace::{
     HTTP_CLIENT_IP, HTTP_FLAVOR, HTTP_HOST, HTTP_METHOD, HTTP_ROUTE, HTTP_SCHEME, HTTP_SERVER_NAME,
     HTTP_STATUS_CODE, HTTP_TARGET, HTTP_USER_AGENT, NET_HOST_PORT, NET_PEER_IP,
 };
-use std::borrow::Cow;
-use std::pin::Pin;
-use std::rc::Rc;
-use std::task::Poll;
+use std::{borrow::Cow, rc::Rc, task::Poll};
 
 /// Request tracing middleware.
 ///
@@ -115,7 +113,11 @@ where
 
     fn new_transform(&self, service: S) -> Self::Future {
         ok(RequestTracingMiddleware::new(
-            global::tracer_with_version("actix-web-opentelemetry", env!("CARGO_PKG_VERSION")),
+            global::tracer_provider().versioned_tracer(
+                "actix-web-opentelemetry",
+                Some(env!("CARGO_PKG_VERSION")),
+                None,
+            ),
             service,
             self.route_formatter.clone(),
         ))
@@ -156,8 +158,7 @@ where
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    #[allow(clippy::type_complexity)]
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
@@ -176,7 +177,6 @@ where
         }
         let conn_info = req.connection_info();
         let mut builder = self.tracer.span_builder(http_route.clone());
-        builder.parent_context = parent_context;
         builder.span_kind = Some(SpanKind::Server);
         let mut attributes = Vec::with_capacity(11);
         attributes.push(HTTP_METHOD.string(http_method_str(req.method())));
@@ -218,8 +218,8 @@ where
             }
         }
         builder.attributes = Some(attributes);
-        let span = self.tracer.build(builder);
-        let cx = Context::current_with_span(span);
+        let span = self.tracer.build_with_context(builder, &parent_context);
+        let cx = parent_context.with_span(span);
         #[cfg(feature = "sync-middleware")]
         let attachment = cx.clone().attach();
         drop(conn_info);
@@ -260,11 +260,11 @@ where
 }
 
 struct RequestHeaderCarrier<'a> {
-    headers: &'a actix_web::http::header::HeaderMap,
+    headers: &'a HeaderMap,
 }
 
 impl<'a> RequestHeaderCarrier<'a> {
-    fn new(headers: &'a actix_web::http::header::HeaderMap) -> Self {
+    fn new(headers: &'a HeaderMap) -> Self {
         RequestHeaderCarrier { headers }
     }
 }
